@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Color-changing Button</title>
+  <style>
+    :root{
+      --btn-w: 200px;
+      --btn-h: 60px;
+      --radius: 12px;
+      --base-bg: #4a90e2;
+      --hover-bg: #50e3c2;
+      --text-color: #fff;
+    }
+
+    body{
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      height:100vh;
+      margin:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(180deg,#f7f7fb,#eeeaf0);
+    }
+
+    .color-btn{
+      width:var(--btn-w);
+      height:var(--btn-h);
+      border: none;
+      border-radius: var(--radius);
+      background: var(--base-bg);
+      color: var(--text-color);
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      box-shadow: 0 8px 18px rgba(10,10,30,0.12);
+      transition: background 220ms ease, transform 160ms ease, box-shadow 160ms ease;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      user-select: none;
+    }
+
+    
+    .color-btn:hover{
+      background: var(--hover-bg);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 28px rgba(10,10,30,0.14);
+    }
+
+    
+    .color-btn:focus-visible{
+      box-shadow: 0 0 0 4px rgba(74,144,226,0.18), 0 8px 18px rgba(10,10,30,0.12);
+    }
+    .note{
+      position: absolute;
+      bottom: 28px;
+      font-size: 0.9rem;
+      color:#444;
+      width:100%;
+      text-align:center;
+    }
+  </style>
+</head>
+<body>
+
+  <button id="colorBtn" class="color-btn" aria-pressed="false">
+    Click or hover me
+  </button>
+
+
+  <script>
+    
+    function randomColor() {
+      const r = Math.floor(Math.random()*256);
+      const g = Math.floor(Math.random()*256);
+      const b = Math.floor(Math.random()*256);
+      return `rgb(${r},${g},${b})`;
+    }
+
+    
+    function contrastColor(rgbString){
+    
+      const nums = rgbString.match(/(\d+),\s*(\d+),\s*(\d+)/);
+      if(!nums) return '#fff';
+      const r = +nums[1], g = +nums[2], b = +nums[3];
+      
+      const luminance = (0.299*r + 0.587*g + 0.114*b) / 255;
+      return luminance > 0.55 ? '#111' : '#fff';
+    }
+
+    const btn = document.getElementById('colorBtn');
+    const originalBg = getComputedStyle(btn).backgroundColor;
+    const originalText = getComputedStyle(btn).color;
+
+    
+    let toggled = false;
+    btn.addEventListener('click', () => {
+      if (!toggled) {
+        const c = randomColor();
+        btn.style.background = c;
+        btn.style.color = contrastColor(c);
+        btn.setAttribute('aria-pressed', 'true');
+        toggled = true;
+      } else {
+
+        btn.style.background = '';
+        btn.style.color = '';
+        btn.setAttribute('aria-pressed', 'false');
+        toggled = false;
+      }
+    });
+
+    
+    btn.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault(); 
+        btn.click();
+      }
+    });
+
+    
+    btn.addEventListener('mousemove', (ev) => {
+      
+      if (toggled) return;
+      const rect = btn.getBoundingClientRect();
+      const relX = (ev.clientX - rect.left) / rect.width;
+      const hue = Math.round(relX * 360);
+      
+      const hsl = `hsl(${hue} 80% 55%)`; 
+      btn.style.background = hsl;
+      btn.style.color = contrastColor(hsl.replace(/hsl\((\d+)\s+(\d+)%\s+(\d+)%\)/, (m,p1,p2,p3)=> {
+        
+        const h = Number(p1)/360, s = Number(p2)/100, l = Number(p3)/100;
+        function hue2rgb(p, q, t){
+          if (t < 0) t += 1;
+          if (t > 1) t -= 1;
+          if (t < 1/6) return p + (q - p) * 6 * t;
+          if (t < 1/2) return q;
+          if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+          return p;
+        }
+        let r, g, b;
+        if (s === 0) r = g = b = l; else {
+          const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+          const p = 2 * l - q;
+          r = hue2rgb(p, q, h + 1/3);
+          g = hue2rgb(p, q, h);
+          b = hue2rgb(p, q, h - 1/3);
+        }
+        return `rgb(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)})`;
+      }));
+    });
+
+
+    btn.addEventListener('mouseleave', () => {
+      if (!toggled) {
+        btn.style.background = '';
+        btn.style.color = '';
+      }
+    });
+  </script>
+</body>
+</html>
