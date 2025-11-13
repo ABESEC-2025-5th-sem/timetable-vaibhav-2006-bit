@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo Branches</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script>
+        const { useState, useEffect } = React;
+
+        function TodoBranches() {
+            const [branches, setBranches] = useState(() => {
+                try {
+                    const raw = localStorage.getItem("branches-todo-v1");
+                    return raw ? JSON.parse(raw) : [];
+                } catch {
+                    return [];
+                }
+            });
+
+            const [newBranch, setNewBranch] = useState("");
+            const [filter, setFilter] = useState("all");
+
+            useEffect(() => {
+                localStorage.setItem("branches-todo-v1", JSON.stringify(branches));
+            }, [branches]);
+
+            function addBranch() {
+                const trimmed = newBranch.trim();
+                if (!trimmed) return;
+                setBranches((prev) => [
+                    ...prev,
+                    { id: Date.now(), name: trimmed, done: false }
+                ]);
+                setNewBranch("");
+            }
+
+            function toggleDone(id) {
+                setBranches((prev) => prev.map(b => b.id === id ? { ...b, done: !b.done } : b));
+            }
+
+            function removeBranch(id) {
+                setBranches((prev) => prev.filter(b => b.id !== id));
+            }
+
+            function editBranch(id, name) {
+                setBranches((prev) => prev.map(b => b.id === id ? { ...b, name } : b));
+            }
+
+            const filtered = branches.filter(b => {
+                if (filter === "all") return true;
+                if (filter === "done") return b.done;
+                return !b.done;
+            });
+
+            return React.createElement(
+                'div',
+                { className: 'min-h-screen flex items-start justify-center p-6 bg-gray-50' },
+                React.createElement(
+                    'div',
+                    { className: 'w-full max-w-xl bg-white rounded-2xl shadow-md p-6' },
+                    React.createElement(
+                        'header',
+                        { className: 'mb-4' },
+                        React.createElement('h1', { className: 'text-2xl font-semibold' }, 'Branches TODO'),
+                        React.createElement('p', { className: 'text-sm text-gray-500' }, 'Add branch names and manage them (save in localStorage)')
+                    ),
+                    React.createElement(
+                        'section',
+                        { className: 'flex gap-3 mb-4' },
+                        React.createElement('input', {
+                            value: newBranch,
+                            onChange: (e) => setNewBranch(e.target.value),
+                            onKeyDown: (e) => { if (e.key === "Enter") addBranch(); },
+                            placeholder: 'Enter branch name (e.g. feature/auth)',
+                            className: 'flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring'
+                        }),
+                        React.createElement(
+                            'button',
+                            {
+                                onClick: addBranch,
+                                className: 'px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700'
+                            },
+                            'Add'
+                        )
+                    ),
+                    React.createElement(
+                        'section',
+                        { className: 'flex items-center justify-between mb-3' },
+                        React.createElement(
+                            'div',
+                            { className: 'flex gap-2' },
+                            React.createElement(
+                                'button',
+                                {
+                                    onClick: () => setFilter('all'),
+                                    className: `px-3 py-1 rounded ${filter === 'all' ? 'bg-gray-200' : ''}`
+                                },
+                                'All'
+                            ),
+                            React.createElement(
+                                'button',
+                                {
+                                    onClick: () => setFilter('active'),
+                                    className: `px-3 py-1 rounded ${filter === 'active' ? 'bg-gray-200' : ''}`
+                                },
+                                'Active'
+                            ),
+                            React.createElement(
+                                'button',
+                                {
+                                    onClick: () => setFilter('done'),
+                                    className: `px-3 py-1 rounded ${filter === 'done' ? 'bg-gray-200' : ''}`
+                                },
+                                'Done'
+                            )
+                        ),
+                        React.createElement(
+                            'div',
+                            { className: 'text-sm text-gray-600' },
+                            `${branches.length} total • ${branches.filter(b => b.done).length} done`
+                        )
+                    ),
+                    React.createElement(
+                        'ul',
+                        { className: 'space-y-2' },
+                        filtered.length === 0 && React.createElement(
+                            'li',
+                            { className: 'text-center text-gray-400 py-6' },
+                            'No branches to show'
+                        ),
+                        filtered.map(branch =>
+                            React.createElement(
+                                'li',
+                                { key: branch.id, className: 'flex items-center gap-3 p-3 border rounded-lg' },
+                                React.createElement('input', {
+                                    type: 'checkbox',
+                                    checked: branch.done,
+                                    onChange: () => toggleDone(branch.id)
+                                }),
+                                React.createElement('input', {
+                                    value: branch.name,
+                                    onChange: (e) => editBranch(branch.id, e.target.value),
+                                    className: `flex-1 bg-transparent border-none focus:outline-none ${branch.done ? 'line-through text-gray-400' : ''}`
+                                }),
+                                React.createElement(
+                                    'button',
+                                    {
+                                        onClick: () => removeBranch(branch.id),
+                                        className: 'px-2 py-1 rounded text-sm bg-red-100 hover:bg-red-200'
+                                    },
+                                    'Remove'
+                                )
+                            )
+                        )
+                    ),
+                    React.createElement(
+                        'footer',
+                        { className: 'mt-6 text-xs text-gray-500' },
+                        'Tip: press Enter to add. Branch names are stored locally in your browser.'
+                    )
+                )
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(TodoBranches));
+    </script>
+</body>
+</html>
